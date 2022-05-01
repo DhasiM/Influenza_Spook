@@ -12,7 +12,7 @@ python -m pip install -r requirements.txt
 
 from pandas import read_csv
 from pandas import to_datetime
-from fbprophet import Prophet
+from prophet import Prophet
 
 # load data
 
