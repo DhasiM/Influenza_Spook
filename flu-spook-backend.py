@@ -1,4 +1,3 @@
-pip install git+https://github.com/DhasiM/Influenza_Spook/blob/main/data/requirements.txt
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -6,7 +5,9 @@ import warnings
 import pickle
 warnings.filterwarnings(action='ignore')
 
+
 st.title('Flu_Spook')
+pip install git+https://github.com/DhasiM/Influenza_Spook/blob/main/data/requirements.txt
 
 
 
