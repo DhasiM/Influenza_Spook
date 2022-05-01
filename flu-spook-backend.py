@@ -7,7 +7,7 @@ warnings.filterwarnings(action='ignore')
 
 st.title('Flu_Spook')
 
-pip install git+https://github.com/DhasiM/Influenza_Spook/blob/main/data/requirements.txt
+pip install -r requirements.txt
 
 
 from pandas import read_csv
