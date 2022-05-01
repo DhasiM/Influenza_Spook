@@ -5,7 +5,7 @@ category-encoders==2.4.0
 convertdate==2.4.0
 decorator @ file:///home/conda/feedstock_root/build_artifacts/decorator_1641555617451/work
 
-fbprophet==0.7.1
+prophet
 geopandas==0.10.2
 g
 
