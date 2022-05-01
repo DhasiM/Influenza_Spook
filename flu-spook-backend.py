@@ -1,4 +1,4 @@
-pip install -r git+https://github.com/DhasiM/Influenza_Spook/blob/main/data/requirements.txt
+pip install git+https://github.com/DhasiM/Influenza_Spook/blob/main/data/requirements.txt
 import streamlit as st
 import pandas as pd
 import numpy as np
