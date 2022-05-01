@@ -7,7 +7,7 @@ warnings.filterwarnings(action='ignore')
 
 st.title('Flu_Spook')
 
-python -m pip install -r requirements.txt
+py -m pip install -r requirements.txt
 
 
 from pandas import read_csv
