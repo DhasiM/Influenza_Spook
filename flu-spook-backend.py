@@ -7,8 +7,8 @@ warnings.filterwarnings(action='ignore')
 
 st.title('Flu_Spook')
 
-python3 -m pip install -r requirements.txt
-
+#python3 -m pip install -r requirements.txt
+pip install prophet
 
 from pandas import read_csv
 from pandas import to_datetime
