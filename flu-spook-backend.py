@@ -1,3 +1,10 @@
+conda create --name streamprophet37 python=3.7 pip #use python 3.7
+conda activate streamprophet #activate the environment
+conda install libpython m2w64-toolchain -c msys2 # install compiler
+conda install numpy cython matplotlib scipy pandas -c conda-forge #ensure dependencies
+pip install pystan
+pip install fbprophet
+
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -8,7 +15,7 @@ warnings.filterwarnings(action='ignore')
 st.title('Flu_Spook')
 
 #python3 -m pip install -r requirements.txt
-pip install prophet
+#python3 -m pip install prophet
 
 from pandas import read_csv
 from pandas import to_datetime
