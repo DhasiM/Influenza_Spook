@@ -1,99 +1,206 @@
-conda create --name streamprophet37 python=3.7 pip #use python 3.7
-conda activate streamprophet #activate the environment
-conda install libpython m2w64-toolchain -c msys2 # install compiler
-conda install numpy cython matplotlib scipy pandas -c conda-forge #ensure dependencies
-pip install pystan
-pip install fbprophet
-
 import streamlit as st
+import gradio as gr
 import pandas as pd
 import numpy as np
 import warnings
 import pickle
+from pandas import to_datetime
+from fbprophet import Prophet
+import matplotlib.pyplot as plt
+#import bokeh.plotting as bk
+from sklearn.preprocessing import LabelEncoder
+from prophet.plot import plot_plotly, plot_components_plotly
 warnings.filterwarnings(action='ignore')
 
 st.title('Flu_Spook')
 
-#python3 -m pip install -r requirements.txt
-#python3 -m pip install prophet
-
-from pandas import read_csv
-from pandas import to_datetime
-from prophet import Prophet
-
-# load data
-
-import warnings
-import pandas as pd
-import matplotlib.pyplot as plt
-import pickle
-warnings.filterwarnings(action='ignore')
-
-DATA_URL= ('https://github.com/DhasiM/Influenza_Spook/blob/main/data/WPOFluNetInteractiveReport.csv')
-data=pd.read_csv(DATA_URL, parse_dates=['EDATE'], index_col='EDATE', skiprows=3)
-data.tail(1)
-
-data = data.fillna(0) #fill any remaining gaps with 0
-_=data.pop('SPEC_RECEIVED_NB') #remove the number of specimen received
-_=data.pop('SPEC_PROCESSED_NB') #remove the number of specimen processed
-data['SDATE'] = pd.to_datetime(data['SDATE']) #from object to datetime
-data.head()
-
-target=data.pop('TITLE')
-one_hot_encoded_data = pd.get_dummies(data)
-one_hot_encoded_data.tail()
-
-cat_data=one_hot_encoded_data
-df_inf=cat_data.resample('1m').mean()
-df2_inf=cat_data.resample('1y').mean()
-#check for seasonality, trend, 
-fig, axes = plt.subplots(1,3, figsize=(20,4), dpi=100)
-cat_data.plot(title='All influenza', legend=False, ax=axes[0])
-df_inf.plot(title='Influenza seasonality', legend=False, ax=axes[1])
-df2_inf.plot(title='Influenza trend', legend=False, ax=axes[2])
-#data['AH5'].pl
-
-cat_data.head(2)
-
-import fbprophet
-# print version number
-print('Prophet %s' % fbprophet.__version__)
-
-import shutil
-shutil.unpack_archive('https://github.com/DhasiM/Influenza_Spook/blob/main/data/flu_models.zip')
-
-outbreak=pickle.load(open('../input/flu-spook-models/outbreak.sav', 'rb'))
-model=pickle.load(open('../input/flu-spook-models/prophet.sav', 'rb'))
-
-prophet_df=cat_data.reset_index()
-prophet_df.rename(columns = {'EDATE':'ds', 'ALL_INF':'y'}, inplace = True)
+outbreak=pickle.load(open('outbreak.sav', 'rb'))
+model=pickle.load(open('prophet2.sav', 'rb'))
+#data=pd.read_csv('WPOFluNetInteractiveReport.csv', parse_dates=['EDATE'], index_col='EDATE', skiprows=3)
 
 
-# prepare expected column names
-df= prophet_df
-df['ds']= to_datetime(df['ds'])
+#DATA_URL = ('')
+DATA_PATH='WPOFluNetInteractiveReport.csv'
+@st.cache
+def load_data():
+    data= pd.read_csv(DATA_PATH, parse_dates=['EDATE'], index_col='EDATE', skiprows=3)
+    target=data.pop('TITLE')
+    return data, target
 
-#split data
-from sklearn.model_selection import train_test_split
+data_load_state = st.text('Loading data...')
+data, target=load_data()
+data_load_state.text("Done! (using st.cache)")
 
-x_train, x_test= train_test_split(df, test_size=0.3)
-x_train.sort_values(by='ds', axis=0, ascending=True, inplace=True)
-x_test.sort_values(by='ds', axis=0, ascending=True, inplace=True)
+@st.cache
+def select_year(data=data, year = None):
+    if year == None:
+        pass
+    else:
+        data=data.groupby('Year')
+        data = data.get_group(year)
+        return data
+    
+@st.cache
+def select_country(data=data, country=None):
+    if country == None:
+        pass
+    else:
+        data=data.groupby('Country')
+        data = data.get_group(country)
+        return data
+    
+def process_selection(data=data):
+    data = data.fillna(0) #fill any remaining gaps with 0
+    _=data.pop('SPEC_RECEIVED_NB') #remove the number of specimen received
+    _=data.pop('SPEC_PROCESSED_NB')
+    data['SDATE'] = pd.to_datetime(data['SDATE'])
+    return data, target 
 
-prophet_df.head(2)
+data, target=load_data()
+data, target=process_selection(data)
 
-future_data = model.make_future_dataframe(periods=14)
+
+user_country=st.selectbox("Choose a country", 
+                         ('Australia', 'Cambodia', 'China', 'Fiji', 'Japan',
+       "Lao People's Democratic Republic", 'Malaysia', 'Mongolia',
+       'New Caledonia', 'New Zealand', 'Papua New Guinea', 'Philippines',
+       'Republic of Korea', 'Singapore', 'Viet Nam'))
+
+if user_country:
+    #data=select_country(country=user_country)
+    #data, target = process_selection(data)
+
+#user_country=st.selectbox("Choose a country", 
+ #                        ('Australia', 'Cambodia', 'China', 'Fiji', 'Japan',
+  #     "Lao People's Democratic Republic", 'Malaysia', 'Mongolia',
+   #    'New Caledonia', 'New Zealand', 'Papua New Guinea', 'Philippines',
+    #   'Republic of Korea', 'Singapore', 'Viet Nam'))  
+    data=select_country(country=user_country)
+    user_year=st.slider("Choose year", min_value=2000, max_value=2022, step=1)
+    if user_year:
+        #=select_country(country=user_country)
+        data=select_year(data, year=int(user_year))
+        data, target = process_selection(data)
+        st.write('You have selected data for', user_country, 'for the year', user_year)
+        st.dataframe(data.tail(5))
+
+
+
+
+#user_country=st.text_input("Choose a country", )
+#user_year=st.text_input("Choose year", )
+#if user_country:
+ #   data=select_country(country=user_country)
+  #  data, target = process_selection(data)
+   # user_year=st.text_input("Choose year", )
+    #if user_year:
+     #   data=select_year(year=int(user_year))
+      #  data, target = process_selection(data)
+       # st.dataframe(data.tail(5))
+
+#user_country=st.text_area("Choose a country and year", ) 
+#if user_country:
+ #   data, target=make_selection(country=user_country[0], year=user_country[1])
+#data, target = make_selection()
+
+#st.subheader('Map of selected data')
+#st.write(data) 
+    
+@st.cache    
+def prophet_prediction(data=data, period=14):
+    cat_data = pd.get_dummies(data)
+    prophet_df=cat_data.reset_index()
+    prophet_df.rename(columns = {'EDATE':'ds', 'ALL_INF':'y'}, inplace = True)
+    # prepare expected column names
+    data= prophet_df
+    data['ds']= pd.to_datetime(data['ds'])
+    data.sort_values(by='ds', axis=0, ascending=True, inplace=True)
+    future_data = model.make_future_dataframe(period)
 #forecast the data for Test  data
-forecast_data = model.predict(x_test)
-model.plot(forecast_data)
+    forecast_data = model.predict(data)
+    return forecast_data
 
-from sklearn.preprocessing import LabelEncoder
-# creating instance of labelencoder
-labelencoder = LabelEncoder()#one hot encode the categores from label encoder
-# using the encoder to encode the categorical columns
-Y= labelencoder.fit_transform(target)
-Y
+forecast_data=prophet_prediction()
 
-preds = outbreak.predict(forecast_data.yhat.array.reshape(-1, 1))
-y2=labelencoder.inverse_transform(preds)
-y2
+#def plot_forecast(forecast_data):
+ #   model.plot(forecast_data)
+st.subheader('Prophet forecast')
+#plot=model.plot(forecast_data)
+#st.plotly_chart(plot)
+
+import plotly.express as px
+from plotly.subplots import make_subplots
+df= data.reset_index()
+#fig = px.scatter(df, x="EDATE", y="ALL_INF")
+df1= pd.concat([df, forecast_data.yhat], axis=1)
+df1.rename(columns = {'yhat':'predictions'}, inplace = True)
+df1.rename(columns = {'ALL_INF':'observations'}, inplace = True)
+fig =px.scatter(df1, x='EDATE',y=['observations','predictions'])
+#fig =px.scatter(x=df.EDATE,y=[df.ALL_INF,forecast_data.yhat])
+st.plotly_chart(fig)
+
+
+
+
+@st.cache
+def view_trends(data=data):
+    #check for seasonality, trend, 
+    figs, axes = plt.subplots(1,2, figsize=(20,4), dpi=100)
+    data['ALL_INF'].plot(title='All influenza', legend=False, ax=axes[0])
+    df_inf=data['ALL_INF'].resample('1m').mean()
+    df2_inf=data['ALL_INF'].resample('1y').mean()
+    df_inf.plot(title='Influenza seasonality', legend=False, ax=axes[1])
+    df2_inf.plot(title='Influenza trend', legend=False, ax=axes[2])
+    return figs
+st.pyplot(figs)
+
+@st.cache(suppress_st_warning=True)
+
+#if st.button('view trends'):
+ #   fig = view_trends()
+  #  st.pyplot(fig)
+    
+
+@st.cache   
+def outbreak_predictions(forecast_data=forecast_data):
+    preds = outbreak.predict(forecast_data.yhat.array.reshape(-1, 1))
+    labelencoder = LabelEncoder()#one hot encode the categores from label encoder
+    # using the encoder to encode the categorical columns
+    Y= labelencoder.fit_transform(target)
+    readable_prediction=labelencoder.inverse_transform(preds)
+    #y2 =
+    return readable_prediction
+
+readable_prediction= outbreak_predictions()
+pred= pd.DataFrame(readable_prediction)
+st.dataframe(pred)
+# In[14]:
+
+
+    
+
+
+# In[17]:
+
+
+#data= read_data('WPOFluNetInteractiveReport.csv')
+#select_year(2000)
+#processed()
+
+
+# In[ ]:
+
+
+
+
+# In[ ]:
+
+
+
+
+
+# In[ ]:
+
+
+
+
