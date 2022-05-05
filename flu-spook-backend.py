@@ -67,14 +67,7 @@ user_country=st.selectbox("Choose a country",
        'Republic of Korea', 'Singapore', 'Viet Nam'))
 
 if user_country:
-    #data=select_country(country=user_country)
-    #data, target = process_selection(data)
-
-#user_country=st.selectbox("Choose a country", 
- #                        ('Australia', 'Cambodia', 'China', 'Fiji', 'Japan',
-  #     "Lao People's Democratic Republic", 'Malaysia', 'Mongolia',
-   #    'New Caledonia', 'New Zealand', 'Papua New Guinea', 'Philippines',
-    #   'Republic of Korea', 'Singapore', 'Viet Nam'))  
+    
     data=select_country(country=user_country)
     user_year=st.slider("Choose year", min_value=2000, max_value=2022, step=1)
     if user_year:
@@ -87,26 +80,10 @@ if user_country:
 
 
 
-#user_country=st.text_input("Choose a country", )
-#user_year=st.text_input("Choose year", )
-#if user_country:
- #   data=select_country(country=user_country)
-  #  data, target = process_selection(data)
-   # user_year=st.text_input("Choose year", )
-    #if user_year:
-     #   data=select_year(year=int(user_year))
-      #  data, target = process_selection(data)
-       # st.dataframe(data.tail(5))
 
-#user_country=st.text_area("Choose a country and year", ) 
-#if user_country:
- #   data, target=make_selection(country=user_country[0], year=user_country[1])
-#data, target = make_selection()
-
-#st.subheader('Map of selected data')
-#st.write(data) 
     
-@st.cache    
+@st.cache   
+
 def prophet_prediction(data=data, period=14):
     cat_data = pd.get_dummies(data)
     prophet_df=cat_data.reset_index()
@@ -118,10 +95,11 @@ def prophet_prediction(data=data, period=14):
     future_data = model.make_future_dataframe(period)
 #forecast the data for Test  data
     forecast_data = model.predict(data)
-    return forecast_data
+    return forecast_data, future_data
 
-forecast_data=prophet_prediction()
+forecast_data, future_data =prophet_prediction()
 
+st.dataframe(future_data.head(5))
 #def plot_forecast(forecast_data):
  #   model.plot(forecast_data)
 st.subheader('Prophet forecast')
@@ -148,11 +126,12 @@ def view_trends(data=data):
     figs, axes = plt.subplots(1,2, figsize=(20,4), dpi=100)
     data['ALL_INF'].plot(title='All influenza', legend=False, ax=axes[0])
     df_inf=data['ALL_INF'].resample('1m').mean()
-    df2_inf=data['ALL_INF'].resample('1y').mean()
+    #df2_inf=data['ALL_INF'].resample('1y').mean()
     df_inf.plot(title='Influenza seasonality', legend=False, ax=axes[1])
-    df2_inf.plot(title='Influenza trend', legend=False, ax=axes[2])
+    #df2_inf.plot(title='Influenza trend', legend=False, ax=axes[2])
     return figs
-st.pyplot(figs)
+#figs=view_trends()
+#st.pyplot(figs)
 
 @st.cache(suppress_st_warning=True)
 
@@ -172,35 +151,13 @@ def outbreak_predictions(forecast_data=forecast_data):
     return readable_prediction
 
 readable_prediction= outbreak_predictions()
-pred= pd.DataFrame(readable_prediction)
-st.dataframe(pred)
+new_df=pd.merge(forecast_data, pd.DataFrame(readable_prediction), left_index=True, right_index=True)
+#pred= pd.DataFrame(readable_prediction)
+st.dataframe(new_df)
 # In[14]:
 
-
-    
-
-
-# In[17]:
-
-
-#data= read_data('WPOFluNetInteractiveReport.csv')
-#select_year(2000)
-#processed()
-
-
-# In[ ]:
-
-
-
-
-# In[ ]:
-
-
-
-
-
-# In[ ]:
-
+flags=new_df[new_df.loc[0].str.contains("Outbreak|Pandemic")]
+st.dataframe(flags)    
 
 
 
