@@ -178,18 +178,12 @@ data_load_state.text("Forecast complete!")
 st.subheader('Forecast influenza data')
 
   
-limits = st.sidebar.selectbox('Choose plot limits', ('Yes', 'No'))
-if limits =='Yes':
+if st.sidebar.button('See prophet model graph'):
     plot=prophet.plot(forecast_data)
-    date = st.sidebar.slider('start date', datetime.date(2000,1,1))
-    enddate= st.sidebar.slider('end date', datetime.date(2001,1,1))
     ax = plot.gca()
     ax.set_xlim([start_date, end_date])
     st.plotly_chart(plot)
-else: 
-    plot=prophet.plot(forecast_data)
-    ax = plot.gca()
-    st.plotly_chart(plot)
+
 
 # setting x limit. date range to plot
 
@@ -277,9 +271,11 @@ def get_outbreak_alert(df=new_df):
                     outbreaks: list of unique dates for potential outbreaks
                     
     '''
-    df['level']= df.preds.str.contains(pat='no',flags=re.IGNORECASE, regex=True)
+    df['level']= df.preds.str.contains(pat='outbreak',flags=re.IGNORECASE, regex=True)
     outbreaks = df[(df.level == True)]
-    outbreaks = outbreaks.ds.unique()
+    outbreaks=outbreaks.ds.dt.strftime('%Y-%m-%d')
+    outbreaks = outbreaks.unique()
+    
     outbreaks=outbreaks.tolist()
     return outbreaks
 
@@ -288,7 +284,7 @@ outbreaks =get_outbreak_alert()
 if len(outbreaks) == 0:
     st.write("There are no outbreaks forecasted for this time period")
 else:
-    st.write(f"There is a chance of an outbreak for the dates: {st.write(outbreaks)}")
+    st.write("There is a chance of an outbreak for the above dates")
 
 
 
