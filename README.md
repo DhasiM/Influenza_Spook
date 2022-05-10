@@ -10,6 +10,10 @@ The field of epidemic intelligence exists as a response to this threat. Epidemic
 This project leans on the epidemic intelligence framework to develop a baseline model for influenza data using data from [WHO Flunet](https://apps.who.int/flumart/Default?ReportNo=12). 
 
 
+## Notebook
+
+ > [Final Notebook](https://github.com/DhasiM/Influenza_Spook/blob/main/Final_notebook_influenza_spook.ipynb) contains report with code and script.
+ 
 ## Technologies
 * [Python 3.8](https://www.python.org/downloads/release/python-380/)
 * [Sklearn](https://scikit-learn.org)
