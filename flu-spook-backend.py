@@ -15,22 +15,27 @@ warnings.filterwarnings(action='ignore')
 st.title('Flu_Spook')
 
 outbreak=pickle.load(open('outbreak.sav', 'rb'))
-model=pickle.load(open('prophet2.sav', 'rb'))
-model1=pickle.load(open('prophet.sav', 'rb'))
+prophet=pickle.load(open('prophet.sav', 'rb'))
+pro_regressor=pickle.load(open('prophet_pro.sav', 'rb'))
+
 
 DATA_PATH='WPOFluNetInteractiveReport.csv'
 
 @st.cache #cache results of function
-def load_and_process_data():
+
+def load_and_process_data(path=DATA_PATH):
     ''' 
+    Returns a pre-processed dataframe and target
+    
     This function reads the dataframe from the origin, parses it and pre-processes it.
     
-    Input: DATA_PATH is the url, path or name of the file to be loaded. Here it uses .csv but
-    can be modified to accept tabular data of any format.
+        Parameters: 
+            DATA_PATH is the url, path or name of the file to be loaded. Here it uses .csv but
+            can be modified to accept tabular data of any format.
     
-    Output: Pandas dataframe loaded in memory and target column.
+        Returns: Pandas dataframe loaded in memory and target column.
     '''
-    data= pd.read_csv(DATA_PATH, parse_dates=['EDATE'], index_col='EDATE', skiprows=3)
+    data= pd.read_csv(path, parse_dates=['EDATE'], index_col='EDATE', skiprows=3)
     target=data.pop('TITLE')
     _=data.pop('SPEC_RECEIVED_NB') #remove the number of specimen received
     _=data.pop('SPEC_PROCESSED_NB')
@@ -47,9 +52,11 @@ def select_year(data=data, year = None):
     '''
     This function allows the user to select a year of interest from the dataframe
     
-    input: pre-loaded dataframe.
+        Parameters: 
+            data: pre-loaded dataframe.
     
-    output: reduced dataframe with only the year of interest.
+        Returns: 
+            data: reduced dataframe with only the year of interest.
     
     '''
     if year == None:
@@ -63,11 +70,13 @@ def select_year(data=data, year = None):
 def select_country(data=data, country=None):
 
     '''
-    This function allows the user to select a country of interest from the dataframe
+    Allows the user to select a country of interest from the dataframe
     
-    input: pre-loaded dataframe.
+        Parameters: 
+            data: pre-loaded dataframe or data output of _select_year
     
-    output: reduced dataframe with only the country of interest.
+        Returns: 
+            data= reduced dataframe with only the country of interest.
     
     '''
     if country == None:
@@ -125,19 +134,22 @@ else:
 
 
     
-@st.cache   
-def create_future(ds):
-    df=ds
-    for idx, model in enumerate(models):
-        new=model.predict(ds)
-        new[idx]= new.rename(columns={'yhat': idx}, inplace=True)
-        df[idx] =new[idx]
-    return df
-
 
         
 @st.cache
 def prophet_prediction(data=data, period=2):
+    '''
+    Runs influenza incidence prediction
+    
+        Parameters: 
+            data: pre-loaded dataframe or data output of _select_year or select_country
+            period: number of weeks to looks ahead, default is set to 2 weeks
+    
+        Returns: 
+            future_data= future dates as determined by prophet
+            forecast_data: dataframe of prophet predcitons which include prediction, upper and lower limits.
+    
+    '''
     #data, target=process_selection()
     cat_data = pd.get_dummies(data)
     prophet_df=cat_data.reset_index()
@@ -146,11 +158,18 @@ def prophet_prediction(data=data, period=2):
     data= prophet_df
     data['ds']= pd.to_datetime(data['ds'])
     data.sort_values(by='ds', axis=0, ascending=True, inplace=True)
-    future_data = model1.make_future_dataframe(period)
-    forecast_data = model1.predict(future_data)
+    future_data = prophet.make_future_dataframe(periods=14)
+
+#forecast the data for Test  data
+    forecast_data = prophet.predict(future_data)
+    prophet.plot(forecast_data)
     return forecast_data, future_data
 
+data_load_state = st.text('Please wait as forcasting model runs...')
+
 forecast_data, future_data =prophet_prediction()
+
+data_load_state.text("Forecast complete!")
 
 #st.dataframe(future_data.head(5))
 #def plot_forecast(forecast_data):
@@ -159,14 +178,18 @@ forecast_data, future_data =prophet_prediction()
 st.subheader('Forecast influenza data')
 
   
-#if st.button('Choose plot limits'):
-    #date = st.sidebar.slider('start date', datetime.date(2000,1,1))
-    #enddate= st.sidebar.slider('end date', datetime.date(2001,1,1))
-plot=model.plot(forecast_data)
-ax = plot.gca()
-#ax.set_xlim([start_date, end_date])
-
-st.plotly_chart(plot)
+limits = st.sidebar.selectbox('Choose plot limits', ('Yes', 'No'))
+if limits =='Yes':
+    plot=prophet.plot(forecast_data)
+    date = st.sidebar.slider('start date', datetime.date(2000,1,1))
+    enddate= st.sidebar.slider('end date', datetime.date(2001,1,1))
+    ax = plot.gca()
+    ax.set_xlim([start_date, end_date])
+    st.plotly_chart(plot)
+else: 
+    plot=prophet.plot(forecast_data)
+    ax = plot.gca()
+    st.plotly_chart(plot)
 
 # setting x limit. date range to plot
 
@@ -185,46 +208,47 @@ st.plotly_chart(fig)
 
 
 
-#@st.cache
-#def view_trends1(data=data):
-    #check for seasonality, trend, 
-    #Resample at monthly and yearly intervals to observe trends and seasonality
- #   df_inf=data.resample('1m').mean()
-  #  df2_inf=data.resample('1y').mean()
 
-#check for seasonality and trend
-   # fig, axes = plt.subplots(1,3, figsize=(20,4), dpi=100)
-
-#plot all the influenza subtype  and total columns
-    #data.iloc[:, 3:14].plot(title='Raw Data', legend=False,  xlabel='Date', ax=axes[0]) 
-   # df_inf.iloc[:, 3:14].plot(title='Influenza seasonality', legend=False,  xlabel='Date', ax=axes[1])
-    #df2_inf.iloc[:, 3:14].plot(title='Influenza trend', legend=False,  xlabel='Date',  ax=axes[2])
-
-    #figs, axes = plt.subplots(1,2, figsize=(20,4), dpi=100)
-    #data['ALL_INF'].plot(title='All influenza', legend=False, ax=axes[0])
-    #df_inf=data['ALL_INF'].resample('1m').mean()
-    #df2_inf=data['ALL_INF'].resample('1y').mean()
-    #df_inf.plot(title='Influenza seasonality', legend=False, ax=axes[1])
-    #df2_inf.plot(title='Influenza trend', legend=False, ax=axes[2])
-  #  return fig
-#figs=view_trends()
-#st.pyplot(figs)
 @st.cache   
-def view_trends(data=data):
-    fig =px.scatter(data, x='EDATE',y=['ALL_INF', 'INF_A', 'INF_B'])
+def compare_influenza_incidence(data=data):
+    '''
+    Compare the incidence of pandemic prone influenza A and endemic Influenza B viruses
+    
+        Parameters: 
+            data: pre-loaded dataframe or data output of _select_year r select_country
+    
+        Returns: 
+            fig= an interactive plotly scatter plot of influenza subtype incidence.
+    
+    '''
+    
+    df=data.reset_index()
+    fig =px.scatter(df, x='EDATE',y=['ALL_INF', 'INF_A', 'INF_B'])
     return fig
 #fig =px.scatter(x=df.EDATE,y=[df.ALL_INF,forecast_data.yhat])
 
 
 #@st.cache(suppress_st_warning=True)
-if st.button('view trend'):
-    fig = view_trends()
+if st.button('Compare influenza subtype incidence'):
+    fig =  compare_influenza_incidence()
     st.plotly_chart(fig)
   #  st.pyplot(fig)
     
 
 @st.cache   
 def outbreak_predictions(forecast_data=forecast_data):
+    '''
+    
+     Classifies disease level of predictions
+    
+        Parameters: 
+                    forecast_data: output of prophet prediction
+        Returns:
+                    readable_prediction: list of classified predictions in text
+                    
+    '''
+    
+    
     preds = outbreak.predict(forecast_data.yhat.array.reshape(-1, 1))
     labelencoder = LabelEncoder()#one hot encode the categores from label encoder
     # using the encoder to encode the categorical columns
@@ -234,32 +258,38 @@ def outbreak_predictions(forecast_data=forecast_data):
     return readable_prediction
 
 readable_prediction= outbreak_predictions()
-reads= pd.DataFrame(readable_prediction)
+reads=pd.DataFrame(columns = ['preds']) 
+reads.preds= pd.Series(readable_prediction)
 #reads.rename(columns ={'0':'preds'}, inplace=True)
 new_df=pd.merge(forecast_data, reads, left_index=True, right_index=True)
 #pred= pd.DataFrame(readable_prediction)
-st.dataframe(new_df)
-# In[14]:
+#st.dataframe(new_df)
 
-#new_df['flags']=new_df[new_df.loc[0].str.contains("Outbreak|Pandemic")]
-#outbreak = new_df.loc[0].str.contains("Outbreak|Pandemic")
-#st.write(new_df)
-#try:
- #   st.dataframe(flags)    
-#except ValueError:
- #   st.write("no dice")
-#def find_outbreak(data=new_df):
+import re
+def get_outbreak_alert(df=new_df):
+    '''
+    
+    Creates a list of predicted dates with outbreaks
+    
+        Parameters: 
+                    df: data frame of predictions and forecast dates
+        Returns:
+                    outbreaks: list of unique dates for potential outbreaks
+                    
+    '''
+    df['level']= df.preds.str.contains(pat='no',flags=re.IGNORECASE, regex=True)
+    outbreaks = df[(df.level == True)]
+    outbreaks = outbreaks.ds.unique()
+    outbreaks=outbreaks.tolist()
+    return outbreaks
 
-#try:
- #   outbreak_df = new_df.loc[0].str.contains("Outbreak|Pandemic")
-  #  st.write("P")
-#except (ValueError, NameError, TypeError):
- #   st.write("There are no outbreak for this period")
-#else:
- #   st.write('aha!')
-#return outbreak_df
+outbreaks =get_outbreak_alert()
 
-#flags=find_outbreak()
+if len(outbreaks) == 0:
+    st.write("There are no outbreaks forecasted for this time period")
+else:
+    st.write(f"There is a chance of an outbreak for the dates: {st.write(outbreaks)}")
+
 
 
 
