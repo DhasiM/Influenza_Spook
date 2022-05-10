@@ -110,8 +110,8 @@ if user_country != 'None':
         if user_year != 'None':
         
             data=select_year(data, year=int(user_year))
-            start_date=year
-            end_date= year+1
+            start_date=user_year
+            end_date= user_year+1
             #data, target = process_selection(data)
             st.write('You have selected data for', user_country, 'for the year', user_year)
             st.dataframe(data.tail(5))
