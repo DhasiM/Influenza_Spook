@@ -76,7 +76,7 @@ def select_country(data=data, country=None):
             data: pre-loaded dataframe or data output of _select_year
     
         Returns: 
-            data= reduced dataframe with only the country of interest.
+            data: reduced dataframe with only the country of interest.
     
     '''
     if country == None:
@@ -103,32 +103,33 @@ if user_country != 'None':
     
     st.write('You have selected data for', user_country)
             
-   
-    if st.sidebar.button('select year'):
-        user_year = st.sidebar.slider("Choose year", min_value=2000, max_value=2022, step=1)
-    
-        if user_year != 'None':
-        
+    user_year=int(st.sidebar.text_input("Enter year", 0))
+    if user_year != 0:
+        try:
             data=select_year(data, year=int(user_year))
-            start_date=year
-            end_date= year+1
-            #data, target = process_selection(data)
+            start_date=user_year
+            end_date= user_year+1
+                #data, target = process_selection(data)
             st.write('You have selected data for', user_country, 'for the year', user_year)
             st.dataframe(data.tail(5))
-else:
-    if user_country == 'None':
-        start_date=min(data.Year)
-        end_date= max(data.Year)
-    
-        if st.sidebar.button('Press Button to Filter by Year'):
-            user_year = st.sidebar.slider("Choose year", min_value=2000, max_value=2022, step=1)    
-            data=select_year(data, year=int(user_year))
-            #data, target = process_selection(data)
-            start_date=user_year
-            end_date= user_year+ 1
-    
-            st.write('You have selected data for the year', user_year)
-            st.dataframe(data.tail(5))
+        except KeyError:
+            st.write('No data for that year')
+        except TypeError:
+            st.write('Enter a valid year')
+elif user_country == 'None':
+    start_date=min(data.Year)
+    end_date= max(data.Year)
+
+if user_country == 'None':
+    user_year = int(st.sidebar.text_input("Filter by year only", 0))   
+    if user_year !=0 :   
+        data=select_year(data, year=int(user_year))
+                #data, target = process_selection(data)
+        start_date=user_year
+        end_date= user_year+ 1
+
+        st.write('You have selected data for the year', user_year)
+        st.dataframe(data.tail(5))
 
 
 
@@ -167,7 +168,11 @@ def prophet_prediction(data=data, period=2):
 
 data_load_state = st.text('Please wait as forcasting model runs...')
 
-forecast_data, future_data =prophet_prediction()
+period=int(st.sidebar.text_input("How many weeks ahead do you want to forecast?", 2))
+if period != 2:
+    forecast_data, future_data =prophet_prediction(data, period)
+else:
+    forecast_data, future_data =prophet_prediction()
 
 data_load_state.text("Forecast complete!")
 
@@ -181,7 +186,7 @@ st.subheader('Forecast influenza data')
 if st.sidebar.button('See prophet model graph'):
     plot=prophet.plot(forecast_data)
     ax = plot.gca()
-    ax.set_xlim([start_date, end_date])
+    #ax.set_xlim([start_date, end_date])
     st.plotly_chart(plot)
 
 
@@ -201,30 +206,33 @@ st.plotly_chart(fig)
 
 
 
+df=data.reset_index()
 
 
-@st.cache   
-def compare_influenza_incidence(data=data):
-    '''
-    Compare the incidence of pandemic prone influenza A and endemic Influenza B viruses
+#@st.cache   
+#def compare_influenza_incidence(data=data):
+ #   '''
+  #  Compare the incidence of pandemic prone influenza A and endemic Influenza B viruses
     
-        Parameters: 
-            data: pre-loaded dataframe or data output of _select_year r select_country
+   #     Parameters: 
+    #        data: pre-loaded dataframe or data output of _select_year r select_country
     
-        Returns: 
-            fig= an interactive plotly scatter plot of influenza subtype incidence.
+     #   Returns: 
+      #      fig= an interactive plotly scatter plot of influenza subtype incidence.
     
-    '''
+   # '''
     
-    df=data.reset_index()
-    fig =px.scatter(df, x='EDATE',y=['ALL_INF', 'INF_A', 'INF_B'])
-    return fig
+    #df=data.reset_index()
+    #fig =px.scatter(df, x='EDATE',y=['ALL_INF', 'INF_A', 'INF_B'])
+#    return fig
 #fig =px.scatter(x=df.EDATE,y=[df.ALL_INF,forecast_data.yhat])
 
 
 #@st.cache(suppress_st_warning=True)
 if st.button('Compare influenza subtype incidence'):
-    fig =  compare_influenza_incidence()
+    #fig =  compare_influenza_incidence()
+    fig =px.scatter(df, x='EDATE',y=['ALL_INF', 'INF_A', 'INF_B'])
+
     st.plotly_chart(fig)
   #  st.pyplot(fig)
     
@@ -282,7 +290,7 @@ def get_outbreak_alert(df=new_df):
 outbreaks =get_outbreak_alert()
 
 if len(outbreaks) == 0:
-    st.write("There are no outbreaks forecasted for this time period")
+    st.write("There are no outbreaks forecasted for the selected period")
 else:
     st.write("There is a chance of an outbreak for the above dates")
 
