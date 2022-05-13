@@ -109,16 +109,32 @@ if user_country != 'None':
             data=select_year(data, year=int(user_year))
             start_date=user_year
             end_date= user_year+1
+            #data, target = process_selection(data)
+            st.write('You have selected data for', user_country, 'for the year', user_year)
+            st.dataframe(data.tail(5))
+        except TypeError:
+            st.write ("Please enter a valid year")
+        except KeyError:
+            st.write('No data for that year')
+        
+else:
+    if user_country == 'None':
+        start_date=min(data.Year)
+        end_date= max(data.Year)
+    
+        if st.sidebar.button('Press Button to Filter by Year'):
+            user_year = st.sidebar.slider("Choose year", min_value=2000, max_value=2022, step=1)    
+            data=select_year(data, year=int(user_year))
+            #data, target = process_selection(data)
+            start_date=user_year
+            end_date= user_year+1
                 #data, target = process_selection(data)
             st.write('You have selected data for', user_country, 'for the year', user_year)
             st.dataframe(data.tail(5))
-        except KeyError:
-            st.write('No data for that year')
-        except TypeError:
-            st.write('Enter a valid year')
-elif user_country == 'None':
-    start_date=min(data.Year)
-    end_date= max(data.Year)
+                  
+    elif user_country == 'None':
+        start_date=min(data.Year)
+        end_date= max(data.Year)
 
 if user_country == 'None':
     user_year = int(st.sidebar.text_input("Filter by year only", 0))   
